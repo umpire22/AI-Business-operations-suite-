@@ -25,6 +25,7 @@ st.markdown(
         border-radius: 12px;
         box-shadow: 0 6px 18px rgba(0,0,0,0.6);
         border: 1px solid rgba(255,255,255,0.03);
+        margin-bottom: 20px;
     }
     /* Bold colorful headers */
     .agent-title {
@@ -46,32 +47,48 @@ st.markdown(
         padding: 8px 14px;
     }
     /* Inputs */
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div {
+    .stTextInput>div>div>input, 
+    .stTextArea>div>div>textarea, 
+    .stSelectbox>div>div {
         background-color:#071029;
         color: #e6eef8;
         border-radius: 6px;
         padding: 8px;
-    }
-    /* Dataframe header */
-    .stDataFrame table {
-        border-collapse: collapse;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
+# ---------- Main Dashboard Header ----------
+st.markdown(
+    """
+    <div style="
+        text-align:center; 
+        padding: 30px; 
+        border-radius: 12px;
+        background: linear-gradient(90deg, #0ea5e9, #6366f1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        margin-bottom: 20px;
+    ">
+        <h1 style="color:white; font-size:42px; margin-bottom:5px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+            🤖 AI Suite
+        </h1>
+        <h2 style="color:#facc15; font-size:28px; margin:5px 0;">
+            AI Business Operations Suite
+        </h2>
+        <p style="color:#e0e7ff; font-size:18px; margin-top:0;">
+            Your 4-in-1 AI Assistant for Smarter Workflows
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ---------- Sidebar ----------
-try:
-    st.sidebar.image("logo.png", width=80)
-except Exception:
-    st.sidebar.markdown("🤖 **AI Suite**")
-
-st.sidebar.title("AI Business Operations Suite")
-st.sidebar.markdown("Your 4-in-1 AI Assistant for Smarter Workflows")
-
+st.sidebar.title("📌 Agents")
 agent = st.sidebar.selectbox(
-    "Agents",
+    "Choose an agent",
     [
         "Automating Financial Reporting",
         "Handling FAQs (Customer Service)",
@@ -79,9 +96,8 @@ agent = st.sidebar.selectbox(
         "Order Status Tracking"
     ],
 )
-
 st.sidebar.markdown("---")
-st.sidebar.markdown("Built with Streamlit • Professional demo")
+st.sidebar.markdown("Built with Streamlit • Professional Demo")
 
 # ---------- Helper: convert df to CSV bytes ----------
 def df_to_csv_bytes(df: pd.DataFrame) -> bytes:
@@ -114,7 +130,6 @@ if agent == "Automating Financial Reporting":
         st.dataframe(df.head())
 
         # Column mapping
-        cols = df.columns.str.lower()
         mapping = {"revenue": None, "expenses": None, "profit": None}
         for c in df.columns:
             lc = c.lower()
@@ -125,13 +140,9 @@ if agent == "Automating Financial Reporting":
             if "profit" in lc or "net" in lc:
                 mapping["profit"] = c
 
-        st.markdown("### ⚙️ Column mapping")
-        col1 = st.selectbox("Revenue column", options=["-- none --"] + list(df.columns),
-                            index=0 if mapping["revenue"] is None else list(df.columns).index(mapping["revenue"]) + 1)
-        col2 = st.selectbox("Expenses column", options=["-- none --"] + list(df.columns),
-                            index=0 if mapping["expenses"] is None else list(df.columns).index(mapping["expenses"]) + 1)
-        col3 = st.selectbox("Profit column (optional)", options=["-- none --"] + list(df.columns),
-                            index=0 if mapping["profit"] is None else list(df.columns).index(mapping["profit"]) + 1)
+        col1 = st.selectbox("Revenue column", options=["-- none --"] + list(df.columns), index=0 if mapping["revenue"] is None else list(df.columns).index(mapping["revenue"]) + 1)
+        col2 = st.selectbox("Expenses column", options=["-- none --"] + list(df.columns), index=0 if mapping["expenses"] is None else list(df.columns).index(mapping["expenses"]) + 1)
+        col3 = st.selectbox("Profit column (optional)", options=["-- none --"] + list(df.columns), index=0 if mapping["profit"] is None else list(df.columns).index(mapping["profit"]) + 1)
 
         if st.button("Generate Financial Report"):
             report = {}
@@ -160,9 +171,7 @@ if agent == "Automating Financial Reporting":
                     st.pyplot(fig)
 
                 out_df = pd.DataFrame([report])
-                csv_bytes = df_to_csv_bytes(out_df)
-                st.download_button("Download Summary CSV", data=csv_bytes, file_name="financial_summary.csv", mime="text/csv")
-
+                st.download_button("Download Summary CSV", data=df_to_csv_bytes(out_df), file_name="financial_summary.csv", mime="text/csv")
                 df_out = df.copy()
                 df_out['report_generated_at'] = datetime.utcnow().isoformat()
                 st.download_button("Download Enriched Data (CSV)", data=df_to_csv_bytes(df_out), file_name="financial_enriched.csv", mime="text/csv")
@@ -170,7 +179,7 @@ if agent == "Automating Financial Reporting":
             except Exception as e:
                 st.error(f"Failed to generate report: {e}")
     else:
-        st.info("Upload a CSV or paste CSV content to begin.")
+        st.info("Upload a CSV or paste CSV content to begin. A sample financial CSV should have columns like Revenue, Expenses, Profit.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -180,11 +189,12 @@ elif agent == "Handling FAQs (Customer Service)":
     st.markdown('<div class="agent-sub">Fast keyword-based FAQ responses with copy & download options.</div>', unsafe_allow_html=True)
     st.markdown("<div class='card'>", unsafe_allow_html=True)
 
+    st.markdown("### Ask a question or paste many questions (one per line) below:")
     user_question = st.text_input("Type your question (e.g., What are your working hours?)")
     bulk_questions = st.text_area("Or paste multiple questions (one per line) — optional", height=120)
 
     faq_responses = {
-        "hours": "Our customer service hours are Monday to Friday, 9 AM to 5 PM.",
+        "hours": "Our customer service hours are Monday to Friday, 9 AM to 5 PM (local time).",
         "return": "You can return items within 30 days of purchase with a valid receipt.",
         "shipping": "We offer free shipping for orders over $50. Standard shipping takes 3–7 business days.",
         "payment": "We accept Visa, Mastercard and PayPal.",
@@ -221,7 +231,8 @@ elif agent == "Customer Feedback Analysis":
     st.markdown('<div class="agent-sub">Sentiment analysis for individual or bulk feedback with charts and export.</div>', unsafe_allow_html=True)
     st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-    feedback_single = st.text_area("Enter single customer feedback (optional)", height=120)
+    st.markdown("### Paste a single review or upload a CSV with a 'feedback' column.")
+    feedback_single = st.text_area("Enter single customer feedback (or leave empty)", height=120)
     uploaded_file = st.file_uploader("Upload CSV with 'feedback' column (optional)", type=["csv", "xlsx"])
 
     df = None
@@ -234,10 +245,16 @@ elif agent == "Customer Feedback Analysis":
     if feedback_single.strip() != "":
         blob = TextBlob(feedback_single)
         polarity = blob.sentiment.polarity
-        label = "Positive" if polarity > 0.05 else "Negative" if polarity < -0.05 else "Neutral"
-        st.markdown("### 📝 Sentiment Result")
+        if polarity > 0.05:
+            label = "Positive"
+        elif polarity < -0.05:
+            label = "Negative"
+        else:
+            label = "Neutral"
+        st.markdown("### 📝 Sentiment Result (Single)")
         st.write(f"**Sentiment:** {label}")
-        st.write(f"**Score:** {polarity:.3f}")
+        st.write(f"**Score (polarity):** {polarity:.3f}")
+        st.text_area("Copy the feedback here:", value=feedback_single, height=120)
         st.download_button("Download result (TXT)", data=f"Feedback: {feedback_single}\nSentiment: {label}\nScore: {polarity:.3f}", file_name="feedback_analysis.txt", mime="text/plain")
 
     if df is not None:
@@ -245,21 +262,28 @@ elif agent == "Customer Feedback Analysis":
             st.error("CSV must contain a 'feedback' column (case-insensitive).")
         else:
             feedback_col = [c for c in df.columns if c.lower() == "feedback"][0]
+            st.markdown("### Bulk analysis preview")
+            st.dataframe(df[[feedback_col]].head())
+
             if st.button("Analyze Feedback (Bulk)"):
                 sentiments = []
                 for text in df[feedback_col].astype(str).fillna(""):
                     pol = TextBlob(text).sentiment.polarity
-                    lab = "Positive" if pol > 0.05 else "Negative" if pol < -0.05 else "Neutral"
+                    if pol > 0.05:
+                        lab = "Positive"
+                    elif pol < -0.05:
+                        lab = "Negative"
+                    else:
+                        lab = "Neutral"
                     sentiments.append({"feedback": text, "polarity": pol, "label": lab})
                 res_df = pd.DataFrame(sentiments)
-                counts = res_df['label'].value_counts().reindex(['Positive', 'Neutral', 'Negative']).fillna(0).astype(int)
-
                 st.markdown("### 📊 Summary")
+                counts = res_df['label'].value_counts().reindex(['Positive', 'Neutral', 'Negative']).fillna(0).astype(int)
+                st.write(counts.to_dict())
                 fig1, ax1 = plt.subplots(figsize=(4,4))
                 ax1.pie(counts.values, labels=counts.index, autopct='%1.1f%%', startangle=140)
                 ax1.axis('equal')
                 st.pyplot(fig1)
-
                 st.markdown("### 🔍 Detailed Results")
                 st.dataframe(res_df)
                 st.download_button("Download feedback analysis (CSV)", data=df_to_csv_bytes(res_df), file_name="feedback_analysis.csv", mime="text/csv")
