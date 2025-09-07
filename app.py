@@ -1,64 +1,10 @@
-# app.py
-import io
-import pandas as pd
 import streamlit as st
+import pandas as pd
 import matplotlib.pyplot as plt
 from textblob import TextBlob
-from datetime import datetime
 
-# ---------- Page config ----------
-st.set_page_config(page_title="AI Business Operations Suite", layout="wide", initial_sidebar_state="expanded")
-
-# ---------- Global styling (dark theme + colorful headers) ----------
-st.markdown(
-    """
-    <style>
-    /* Page background and text */
-    .reportview-container, .main, header, .stApp {
-        background-color: #0f1720;
-        color: #e6eef8;
-    }
-    /* Card-like container */
-    .card {
-        background: #0b1220;
-        padding: 18px;
-        border-radius: 12px;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.6);
-        border: 1px solid rgba(255,255,255,0.03);
-        margin-bottom: 20px;
-    }
-    /* Bold colorful headers */
-    .agent-title {
-        font-size:28px;
-        font-weight:800;
-        color: #7dd3fc; /* cyan */
-    }
-    .agent-sub {
-        font-size:16px;
-        font-weight:700;
-        color: #fbcfe8; /* pink */
-    }
-    /* Buttons */
-    .stButton>button {
-        background-image: linear-gradient(90deg,#06b6d4,#7c3aed);
-        color: white;
-        font-weight: 800;
-        border-radius: 8px;
-        padding: 8px 14px;
-    }
-    /* Inputs */
-    .stTextInput>div>div>input, 
-    .stTextArea>div>div>textarea, 
-    .stSelectbox>div>div {
-        background-color:#071029;
-        color: #e6eef8;
-        border-radius: 6px;
-        padding: 8px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# ---------- Page Config ----------
+st.set_page_config(page_title="AI Business Operations Suite", layout="wide")
 
 # ---------- Main Dashboard Header ----------
 st.markdown(
@@ -84,11 +30,19 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+st.markdown("---")
 
-# ---------- Sidebar ----------
-st.sidebar.title("📌 Agents")
+# ---------- Sidebar Navigation ----------
+st.sidebar.title("📌 Navigation")
+st.sidebar.markdown("Select an AI Agent below to get started:")
+
+try:
+    st.sidebar.image("logo.png", width=80)
+except Exception:
+    st.sidebar.markdown("🤖")
+
 agent = st.sidebar.selectbox(
-    "Choose an agent",
+    "Agents",
     [
         "Automating Financial Reporting",
         "Handling FAQs (Customer Service)",
@@ -96,236 +50,106 @@ agent = st.sidebar.selectbox(
         "Order Status Tracking"
     ],
 )
+
 st.sidebar.markdown("---")
-st.sidebar.markdown("Built with Streamlit • Professional Demo")
+st.sidebar.info("💡 Powered by the AI Business Operations Suite")
 
-# ---------- Helper: convert df to CSV bytes ----------
-def df_to_csv_bytes(df: pd.DataFrame) -> bytes:
-    return df.to_csv(index=False).encode('utf-8')
-
-# ---------- Agent 1: Automating Financial Reporting ----------
+# ---------- Agent 1: Financial Reporting ----------
 if agent == "Automating Financial Reporting":
-    st.markdown('<div class="agent-title">💰 Automating Financial Reporting Agent</div>', unsafe_allow_html=True)
-    st.markdown('<div class="agent-sub">Generate summaries, charts and downloadable reports from your financial data.</div>', unsafe_allow_html=True)
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.header("📊 Automating Financial Reporting")
+    st.write("Upload a financial dataset (CSV) to generate reports automatically.")
+    
+    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+        st.subheader("Uploaded Data")
+        st.dataframe(df)
 
-    uploaded_file = st.file_uploader("Upload Financial Data (CSV or XLSX)", type=["csv", "xlsx"])
-    manual_input = st.expander("Or paste CSV text here (copy-paste) — optional")
-    pasted_csv = manual_input.text_area("Paste CSV content (optional)", height=150)
+        if "Revenue" in df.columns and "Expenses" in df.columns:
+            df["Profit"] = df["Revenue"] - df["Expenses"]
+            st.subheader("Summary Report")
+            st.write(df.describe())
 
-    df = None
-    if uploaded_file is not None:
-        try:
-            df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
-        except Exception as e:
-            st.error(f"Could not read the file: {e}")
-    elif pasted_csv.strip() != "":
-        try:
-            df = pd.read_csv(io.StringIO(pasted_csv))
-        except Exception as e:
-            st.error(f"Could not parse pasted CSV: {e}")
+            # Plot
+            st.subheader("Revenue vs Expenses")
+            fig, ax = plt.subplots()
+            df.plot(x="Date", y=["Revenue", "Expenses", "Profit"], ax=ax, marker="o")
+            st.pyplot(fig)
 
-    if df is not None:
-        st.markdown("### 📊 Data Preview")
-        st.dataframe(df.head())
+            # Download button
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Download Report", csv, "financial_report.csv", "text/csv")
 
-        # Column mapping
-        mapping = {"revenue": None, "expenses": None, "profit": None}
-        for c in df.columns:
-            lc = c.lower()
-            if "revenue" in lc or "income" in lc or "sales" in lc:
-                mapping["revenue"] = c
-            if "expense" in lc or "cost" in lc:
-                mapping["expenses"] = c
-            if "profit" in lc or "net" in lc:
-                mapping["profit"] = c
-
-        col1 = st.selectbox("Revenue column", options=["-- none --"] + list(df.columns), index=0 if mapping["revenue"] is None else list(df.columns).index(mapping["revenue"]) + 1)
-        col2 = st.selectbox("Expenses column", options=["-- none --"] + list(df.columns), index=0 if mapping["expenses"] is None else list(df.columns).index(mapping["expenses"]) + 1)
-        col3 = st.selectbox("Profit column (optional)", options=["-- none --"] + list(df.columns), index=0 if mapping["profit"] is None else list(df.columns).index(mapping["profit"]) + 1)
-
-        if st.button("Generate Financial Report"):
-            report = {}
-            try:
-                if col1 != "-- none --":
-                    report['Total Revenue'] = float(df[col1].sum())
-                if col2 != "-- none --":
-                    report['Total Expenses'] = float(df[col2].sum())
-                if col3 != "-- none --":
-                    report['Total Profit (from column)'] = float(df[col3].sum())
-                if col3 == "-- none --" and col1 != "-- none --" and col2 != "-- none --":
-                    report['Computed Net Profit'] = float(df[col1].sum() - df[col2].sum())
-
-                st.markdown("### 📑 Summary")
-                for k, v in report.items():
-                    st.write(f"**{k}:** {v:,.2f}")
-
-                if col1 != "-- none --" and col2 != "-- none --":
-                    st.markdown("### 📈 Revenue vs Expenses")
-                    fig, ax = plt.subplots(figsize=(8, 4))
-                    df_plot = df[[col1, col2]].fillna(0)
-                    df_plot.plot(kind="bar", ax=ax)
-                    ax.set_xlabel("Record Index")
-                    ax.set_ylabel("Amount")
-                    ax.legend([col1, col2])
-                    st.pyplot(fig)
-
-                out_df = pd.DataFrame([report])
-                st.download_button("Download Summary CSV", data=df_to_csv_bytes(out_df), file_name="financial_summary.csv", mime="text/csv")
-                df_out = df.copy()
-                df_out['report_generated_at'] = datetime.utcnow().isoformat()
-                st.download_button("Download Enriched Data (CSV)", data=df_to_csv_bytes(df_out), file_name="financial_enriched.csv", mime="text/csv")
-                st.success("Report generated successfully ✅")
-            except Exception as e:
-                st.error(f"Failed to generate report: {e}")
-    else:
-        st.info("Upload a CSV or paste CSV content to begin. A sample financial CSV should have columns like Revenue, Expenses, Profit.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------- Agent 2: Handling FAQs ----------
+# ---------- Agent 2: FAQs ----------
 elif agent == "Handling FAQs (Customer Service)":
-    st.markdown('<div class="agent-title">🤖 Handling FAQs (Customer Service)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="agent-sub">Fast keyword-based FAQ responses with copy & download options.</div>', unsafe_allow_html=True)
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.header("💬 Customer Service FAQ Agent")
+    st.write("Upload a FAQ knowledge base (CSV with 'question' and 'answer' columns) or type your question manually.")
 
-    st.markdown("### Ask a question or paste many questions (one per line) below:")
-    user_question = st.text_input("Type your question (e.g., What are your working hours?)")
-    bulk_questions = st.text_area("Or paste multiple questions (one per line) — optional", height=120)
+    uploaded_file = st.file_uploader("Upload FAQ CSV", type=["csv"])
+    question = st.text_area("❓ Enter your question here")
 
-    faq_responses = {
-        "hours": "Our customer service hours are Monday to Friday, 9 AM to 5 PM (local time).",
-        "return": "You can return items within 30 days of purchase with a valid receipt.",
-        "shipping": "We offer free shipping for orders over $50. Standard shipping takes 3–7 business days.",
-        "payment": "We accept Visa, Mastercard and PayPal.",
-        "refund": "Refunds are processed within 5–10 business days after items are received."
-    }
-
-    def find_faq_answer(q: str):
-        q_l = q.lower()
-        for k, v in faq_responses.items():
-            if k in q_l:
-                return v
-        return "Sorry, I couldn't find an answer to your question."
-
-    if user_question:
-        ans = find_faq_answer(user_question)
-        st.markdown("### 📝 Answer")
-        st.write(ans)
-        st.text_area("Copy this answer:", value=ans, height=120)
-        st.download_button("Download Answer", data=ans, file_name="faq_answer.txt", mime="text/plain")
-
-    if bulk_questions.strip() != "":
-        qs = [q.strip() for q in bulk_questions.splitlines() if q.strip()]
-        results = [{"question": q, "answer": find_faq_answer(q)} for q in qs]
-        df_res = pd.DataFrame(results)
-        st.markdown("### 📚 Bulk Results")
-        st.dataframe(df_res)
-        st.download_button("Download bulk FAQ answers (CSV)", data=df_to_csv_bytes(df_res), file_name="bulk_faq_answers.csv", mime="text/csv")
-
-    st.markdown("</div>", unsafe_allow_html=True)
+    if uploaded_file:
+        faq_df = pd.read_csv(uploaded_file)
+        if st.button("Get Answer"):
+            answer = None
+            for i, row in faq_df.iterrows():
+                if question.lower() in row["question"].lower():
+                    answer = row["answer"]
+                    break
+            if answer:
+                st.success(answer)
+            else:
+                st.warning("Sorry, I couldn't find an answer to your question.")
 
 # ---------- Agent 3: Customer Feedback Analysis ----------
 elif agent == "Customer Feedback Analysis":
-    st.markdown('<div class="agent-title">💬 Customer Feedback Analysis Agent</div>', unsafe_allow_html=True)
-    st.markdown('<div class="agent-sub">Sentiment analysis for individual or bulk feedback with charts and export.</div>', unsafe_allow_html=True)
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.header("📝 Customer Feedback Analysis")
+    st.write("Upload customer feedback (CSV with a 'Feedback' column) to analyze sentiment.")
 
-    st.markdown("### Paste a single review or upload a CSV with a 'feedback' column.")
-    feedback_single = st.text_area("Enter single customer feedback (or leave empty)", height=120)
-    uploaded_file = st.file_uploader("Upload CSV with 'feedback' column (optional)", type=["csv", "xlsx"])
+    uploaded_file = st.file_uploader("Upload Feedback CSV", type=["csv"])
+    feedback_text = st.text_area("✍️ Or paste feedback here")
 
-    df = None
-    if uploaded_file is not None:
-        try:
-            df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
-        except Exception as e:
-            st.error(f"Could not read file: {e}")
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+        st.subheader("Uploaded Feedback Data")
+        st.dataframe(df)
 
-    if feedback_single.strip() != "":
-        blob = TextBlob(feedback_single)
-        polarity = blob.sentiment.polarity
-        if polarity > 0.05:
-            label = "Positive"
-        elif polarity < -0.05:
-            label = "Negative"
-        else:
-            label = "Neutral"
-        st.markdown("### 📝 Sentiment Result (Single)")
-        st.write(f"**Sentiment:** {label}")
-        st.write(f"**Score (polarity):** {polarity:.3f}")
-        st.text_area("Copy the feedback here:", value=feedback_single, height=120)
-        st.download_button("Download result (TXT)", data=f"Feedback: {feedback_single}\nSentiment: {label}\nScore: {polarity:.3f}", file_name="feedback_analysis.txt", mime="text/plain")
+        if "Feedback" in df.columns:
+            st.subheader("Sentiment Analysis")
+            df["Sentiment"] = df["Feedback"].apply(lambda x: TextBlob(x).sentiment.polarity)
+            df["SentimentLabel"] = df["Sentiment"].apply(
+                lambda x: "Positive" if x > 0 else ("Negative" if x < 0 else "Neutral")
+            )
+            st.dataframe(df[["Feedback", "SentimentLabel"]])
 
-    if df is not None:
-        if "feedback" not in [c.lower() for c in df.columns]:
-            st.error("CSV must contain a 'feedback' column (case-insensitive).")
-        else:
-            feedback_col = [c for c in df.columns if c.lower() == "feedback"][0]
-            st.markdown("### Bulk analysis preview")
-            st.dataframe(df[[feedback_col]].head())
+            # Plot
+            st.subheader("Sentiment Distribution")
+            fig, ax = plt.subplots()
+            df["SentimentLabel"].value_counts().plot(kind="bar", ax=ax)
+            st.pyplot(fig)
 
-            if st.button("Analyze Feedback (Bulk)"):
-                sentiments = []
-                for text in df[feedback_col].astype(str).fillna(""):
-                    pol = TextBlob(text).sentiment.polarity
-                    if pol > 0.05:
-                        lab = "Positive"
-                    elif pol < -0.05:
-                        lab = "Negative"
-                    else:
-                        lab = "Neutral"
-                    sentiments.append({"feedback": text, "polarity": pol, "label": lab})
-                res_df = pd.DataFrame(sentiments)
-                st.markdown("### 📊 Summary")
-                counts = res_df['label'].value_counts().reindex(['Positive', 'Neutral', 'Negative']).fillna(0).astype(int)
-                st.write(counts.to_dict())
-                fig1, ax1 = plt.subplots(figsize=(4,4))
-                ax1.pie(counts.values, labels=counts.index, autopct='%1.1f%%', startangle=140)
-                ax1.axis('equal')
-                st.pyplot(fig1)
-                st.markdown("### 🔍 Detailed Results")
-                st.dataframe(res_df)
-                st.download_button("Download feedback analysis (CSV)", data=df_to_csv_bytes(res_df), file_name="feedback_analysis.csv", mime="text/csv")
-
-    st.markdown("</div>", unsafe_allow_html=True)
+    elif feedback_text:
+        sentiment = TextBlob(feedback_text).sentiment.polarity
+        label = "Positive" if sentiment > 0 else ("Negative" if sentiment < 0 else "Neutral")
+        st.info(f"Sentiment: **{label}** (Score: {sentiment:.2f})")
 
 # ---------- Agent 4: Order Status Tracking ----------
 elif agent == "Order Status Tracking":
-    st.markdown('<div class="agent-title">📦 Order Status Tracking Agent</div>', unsafe_allow_html=True)
-    st.markdown('<div class="agent-sub">Enter Order IDs and get simulated stage updates. Supports batch CSV import.</div>', unsafe_allow_html=True)
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.header("📦 Order Status Tracking")
+    st.write("Upload order data (CSV with 'OrderID' and 'Status' columns) or enter an Order ID manually.")
 
-    order_id = st.text_input("Order ID (e.g., ORD-2025-00123)")
-    uploaded_file = st.file_uploader("Upload CSV with order_id column (optional)", type=["csv", "xlsx"])
+    uploaded_file = st.file_uploader("Upload Orders CSV", type=["csv"])
+    order_id = st.text_input("🔎 Enter Order ID")
 
-    status_flow = ["Processing", "Shipped - in transit", "Out for delivery", "Delivered"]
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+        st.subheader("Uploaded Orders")
+        st.dataframe(df)
 
-    def simulate_status(order_id_text: str):
-        if not order_id_text:
-            return None
-        idx = sum(ord(c) for c in str(order_id_text)) % len(status_flow)
-        return status_flow[idx]
-
-    if order_id:
-        status = simulate_status(order_id)
-        st.markdown("### 📦 Order Status")
-        st.write(f"**Order ID:** {order_id}")
-        st.write(f"**Status:** {status}")
-        st.download_button("Download Order Status", data=f"Order ID: {order_id}\nStatus: {status}", file_name=f"{order_id}_status.txt", mime="text/plain")
-
-    if uploaded_file is not None:
-        try:
-            df_orders = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
-            if "order_id" not in [c.lower() for c in df_orders.columns]:
-                st.error("CSV must have an 'order_id' column (case-insensitive).")
+        if order_id:
+            match = df[df["OrderID"] == order_id]
+            if not match.empty:
+                status = match.iloc[0]["Status"]
+                st.success(f"✅ Order {order_id} status: {status}")
             else:
-                col = [c for c in df_orders.columns if c.lower() == "order_id"][0]
-                df_orders['status'] = df_orders[col].astype(str).apply(simulate_status)
-                st.markdown("### Batch Results")
-                st.dataframe(df_orders[[col, 'status']].head(50))
-                st.download_button("Download batch statuses (CSV)", data=df_to_csv_bytes(df_orders[[col, 'status']]), file_name="order_statuses.csv", mime="text/csv")
-        except Exception as e:
-            st.error(f"Could not read file: {e}")
-
-    st.markdown("</div>", unsafe_allow_html=True)
+                st.error("Order ID not found.")
