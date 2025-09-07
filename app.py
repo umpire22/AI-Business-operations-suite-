@@ -1,74 +1,4 @@
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-from textblob import TextBlob
-from PIL import Image
-
-# ---------- Page Config ----------
-st.set_page_config(page_title="AI Business Operations Suite", layout="wide")
-
-# ---------- App Branding ----------
-st.markdown(
-    """
-    <style>
-    .main-title {
-        font-size:36px;
-        font-weight:900;
-        text-align:center;
-        color:#38bdf8; /* cyan */
-        margin-bottom:0px;
-    }
-    .sub-title {
-        font-size:18px;
-        text-align:center;
-        color:#fbbf24; /* amber */
-        margin-top:0px;
-    }
-    .sidebar .sidebar-content {
-        background-color:#0b1220;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# Logo (optional)
-try:
-    logo = Image.open("logo.png")
-    st.image(logo, width=100)
-except:
-    st.write("")
-
-st.markdown('<p class="main-title">🤖 AI Business Operations Suite</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Your 4-in-1 AI Assistant for Smarter Workflows</p>', unsafe_allow_html=True)
-st.markdown("---")
-
-# ---------- Sidebar Navigation ----------
-st.sidebar.image("logo.png", width=80) if "logo.png" else None
-st.sidebar.title("📌 Navigation")
-st.sidebar.markdown("Select an AI Agent below to get started:")
-
-agent = st.sidebar.selectbox(
-    "Agents",
-    [
-        "Automating Financial Reporting",
-        "Handling FAQs (Customer Service)",
-        "Customer Feedback Analysis",
-        "Order Status Tracking"
-    ],
-)
-
-st.sidebar.markdown("---")
-st.sidebar.info("💡 Powered by the AI Business Operations Suite")
-
-# ---------- Agent 1: Financial Reporting ----------
-if agent == "Automating Financial Reporting":
-    st.header("📊 Automating Financial Reporting")
-    st.write("Upload a financial dataset (CSV) to generate reports automatically.")
-    
-    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
+df = pd.read_csv(uploaded_file)
         st.subheader("Uploaded Data")
         st.dataframe(df)
 
@@ -160,3 +90,4 @@ elif agent == "Order Status Tracking":
                 st.success(f"✅ Order {order_id} status: {status}")
             else:
                 st.error("Order ID not found.")
+        
